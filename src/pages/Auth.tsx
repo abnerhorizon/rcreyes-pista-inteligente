@@ -42,17 +42,15 @@ export default function Auth() {
   
   const { signIn, signUp } = useAuth();
 
-  // Check if any users exist
+  // Check if any users exist using security definer function
   useEffect(() => {
     const checkUsers = async () => {
       try {
-        const { count, error } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
+        const { data, error } = await supabase.rpc('check_users_exist');
         
         if (error) throw error;
         
-        const usersExist = (count ?? 0) > 0;
+        const usersExist = data === true;
         setHasUsers(usersExist);
         setIsFirstUser(!usersExist);
       } catch (error) {
