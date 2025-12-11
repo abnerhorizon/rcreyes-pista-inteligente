@@ -377,6 +377,7 @@ export type Database = {
           tiempo_real_minutos: number
         }[]
       }
+      check_users_exist: { Args: never; Returns: boolean }
       generar_codigo_ticket: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
