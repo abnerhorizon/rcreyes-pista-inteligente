@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clock, Users, Eye, Pause, Play, DollarSign } from 'lucide-react';
+import { Clock, Users, Eye, Pause, Play, DollarSign, Car, Flag } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,18 +13,11 @@ interface TicketCardProps {
   onResume?: (ticketId: string) => void;
 }
 
-const estadoStyles: Record<EstadoTicket, string> = {
-  activo: 'bg-success text-success-foreground',
-  pausado: 'bg-warning text-warning-foreground',
-  cerrado: 'bg-muted text-muted-foreground',
-  cancelado: 'bg-destructive text-destructive-foreground',
-};
-
-const estadoLabels: Record<EstadoTicket, string> = {
-  activo: 'Activo',
-  pausado: 'Pausado',
-  cerrado: 'Cerrado',
-  cancelado: 'Cancelado',
+const estadoConfig: Record<EstadoTicket, { bg: string; text: string; label: string; icon: typeof Car }> = {
+  activo: { bg: 'bg-success', text: 'text-white', label: 'En Pista', icon: Car },
+  pausado: { bg: 'bg-warning', text: 'text-white', label: 'Pit Stop', icon: Pause },
+  cerrado: { bg: 'bg-muted', text: 'text-muted-foreground', label: 'Finalizado', icon: Flag },
+  cancelado: { bg: 'bg-destructive', text: 'text-white', label: 'Cancelado', icon: Flag },
 };
 
 function formatTime(minutes: number): string {
@@ -49,11 +42,10 @@ export function TicketCard({ ticket, onPause, onResume }: TicketCardProps) {
 
     setElapsedMinutes(calculateElapsed());
 
-    // Only update time if ticket is active
     if (ticket.estado === 'activo') {
       const interval = setInterval(() => {
         setElapsedMinutes(calculateElapsed());
-      }, 60000); // Update every minute
+      }, 60000);
 
       return () => clearInterval(interval);
     }
@@ -61,41 +53,60 @@ export function TicketCard({ ticket, onPause, onResume }: TicketCardProps) {
 
   const isActive = ticket.estado === 'activo';
   const isPaused = ticket.estado === 'pausado';
+  const config = estadoConfig[ticket.estado];
+  const StatusIcon = config.icon;
 
   return (
     <Card className={cn(
-      "relative overflow-hidden transition-shadow hover:shadow-md",
-      isActive && "ring-2 ring-success/50"
+      "relative overflow-hidden transition-all duration-300 hover:shadow-lg border-2",
+      isActive && "border-success/50 shadow-lg shadow-success/10",
+      isPaused && "border-warning/50"
     )}>
-      {/* Status indicator bar */}
-      <div className={cn("absolute left-0 top-0 h-full w-1", estadoStyles[ticket.estado])} />
+      {/* Top accent bar */}
+      <div className={cn("h-1", config.bg)} />
       
-      <CardContent className="p-4 pl-5">
+      <CardContent className="p-4">
         {/* Header */}
-        <div className="mb-3 flex items-center justify-between">
-          <div>
-            <p className="text-lg font-bold">{ticket.codigo}</p>
-            <p className="text-sm text-muted-foreground">
-              {ticket.cliente?.nombre || 'Cliente'}
-            </p>
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "p-2 rounded-lg",
+              isActive ? "bg-success/10" : isPaused ? "bg-warning/10" : "bg-muted"
+            )}>
+              <StatusIcon className={cn(
+                "h-5 w-5",
+                isActive ? "text-success" : isPaused ? "text-warning" : "text-muted-foreground"
+              )} />
+            </div>
+            <div>
+              <p className="text-lg font-display font-bold tracking-wide">{ticket.codigo}</p>
+              <p className="text-sm text-muted-foreground">
+                {ticket.cliente?.nombre || 'Cliente'}
+              </p>
+            </div>
           </div>
-          <Badge className={cn(estadoStyles[ticket.estado])}>
-            {estadoLabels[ticket.estado]}
+          <Badge className={cn(config.bg, config.text, "font-display text-xs")}>
+            {config.label}
           </Badge>
         </div>
 
-        {/* Info */}
-        <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
-            <span>{ticket.personas} persona{ticket.personas !== 1 ? 's' : ''}</span>
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">{ticket.personas} persona{ticket.personas !== 1 ? 's' : ''}</span>
           </div>
           <div className={cn(
-            "flex items-center gap-1",
-            isActive && "text-foreground font-medium animate-pulse-slow"
+            "flex items-center gap-2 p-2 rounded-lg",
+            isActive ? "bg-success/10" : "bg-muted/50"
           )}>
-            <Clock className="h-4 w-4" />
-            <span>{formatTime(elapsedMinutes)}</span>
+            <Clock className={cn("h-4 w-4", isActive ? "text-success" : "text-muted-foreground")} />
+            <span className={cn(
+              "text-sm font-display font-bold",
+              isActive && "text-success"
+            )}>
+              {formatTime(elapsedMinutes)}
+            </span>
           </div>
         </div>
 
@@ -104,10 +115,10 @@ export function TicketCard({ ticket, onPause, onResume }: TicketCardProps) {
           <Button
             variant="outline"
             size="sm"
-            className="flex-1 touch-target"
+            className="flex-1 touch-target font-display"
             onClick={() => navigate(`/ticket/${ticket.id}`)}
           >
-            <Eye className="mr-2 h-4 w-4" />
+            <Eye className="mr-1 h-4 w-4" />
             Ver
           </Button>
           
@@ -115,10 +126,10 @@ export function TicketCard({ ticket, onPause, onResume }: TicketCardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 touch-target"
+              className="flex-1 touch-target font-display border-warning text-warning hover:bg-warning hover:text-white"
               onClick={() => onPause(ticket.id)}
             >
-              <Pause className="mr-2 h-4 w-4" />
+              <Pause className="mr-1 h-4 w-4" />
               Pausar
             </Button>
           )}
@@ -127,21 +138,21 @@ export function TicketCard({ ticket, onPause, onResume }: TicketCardProps) {
             <Button
               variant="outline"
               size="sm"
-              className="flex-1 touch-target"
+              className="flex-1 touch-target font-display border-success text-success hover:bg-success hover:text-white"
               onClick={() => onResume(ticket.id)}
             >
-              <Play className="mr-2 h-4 w-4" />
-              Reanudar
+              <Play className="mr-1 h-4 w-4" />
+              Seguir
             </Button>
           )}
           
           {(isActive || isPaused) && (
             <Button
               size="sm"
-              className="flex-1 touch-target"
+              className="flex-1 touch-target font-display bg-primary hover:bg-primary/90"
               onClick={() => navigate(`/cobro/${ticket.id}`)}
             >
-              <DollarSign className="mr-2 h-4 w-4" />
+              <Flag className="mr-1 h-4 w-4" />
               Cobrar
             </Button>
           )}
