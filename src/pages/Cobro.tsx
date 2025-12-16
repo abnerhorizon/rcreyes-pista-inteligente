@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { ArrowLeft, Clock, Printer, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Clock, Printer, CheckCircle, Loader2, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -340,10 +341,16 @@ export default function Cobro() {
             </CardHeader>
             <CardContent className="space-y-3">
               {servicios.map((ts) => (
-                <div key={ts.id} className="flex justify-between">
-                  <span>
-                    {ts.servicio?.nombre} x{ts.cantidad}
-                  </span>
+                <div key={ts.id} className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span>{ts.servicio?.nombre} x{ts.cantidad}</span>
+                    {ts.servicio?.requiere_inventario && (
+                      <Badge variant="secondary" className="gap-1 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                        <RotateCcw className="h-2.5 w-2.5" />
+                        Devuelve
+                      </Badge>
+                    )}
+                  </div>
                   <span>${ts.monto_total.toFixed(2)}</span>
                 </div>
               ))}

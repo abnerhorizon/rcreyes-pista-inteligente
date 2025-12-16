@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { z } from 'zod';
-import { ArrowLeft, Plus, Minus, Loader2, Search, UserCheck, Crown } from 'lucide-react';
+import { ArrowLeft, Plus, Minus, Loader2, Search, UserCheck, Crown, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -479,17 +479,25 @@ export default function NuevoTicket() {
                           className="touch-target"
                         />
                         <div>
-                          <label
-                            htmlFor={servicio.id}
-                            className="font-medium cursor-pointer"
-                          >
-                            {servicio.nombre}
-                          </label>
+                          <div className="flex items-center gap-2">
+                            <label
+                              htmlFor={servicio.id}
+                              className="font-medium cursor-pointer"
+                            >
+                              {servicio.nombre}
+                            </label>
+                            {servicio.requiere_inventario && (
+                              <Badge variant="secondary" className="gap-1 text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                                <RotateCcw className="h-2.5 w-2.5" />
+                                Renta
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-muted-foreground">
                             ${servicio.precio.toFixed(2)}
                             {servicio.requiere_inventario && servicio.stock_actual !== null && (
                               <span className="ml-2">
-                                (Stock: {servicio.stock_actual})
+                                (Disponibles: {servicio.stock_actual})
                               </span>
                             )}
                           </p>
