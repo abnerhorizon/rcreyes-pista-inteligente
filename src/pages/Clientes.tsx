@@ -13,6 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Pencil, User, Plus, Loader2, Trash2, Search, Crown, Percent } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { TipoMembresia } from '@/types/database';
+import { MEMBRESIA_CONFIG } from '@/lib/constants';
 import { z } from 'zod';
 
 const clienteSchema = z.object({
@@ -30,12 +31,6 @@ interface ClienteWithMembresia {
   created_at: string;
 }
 
-const MEMBRESIA_CONFIG: Record<TipoMembresia, { label: string; descuento: number; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
-  ninguna: { label: 'Sin membresía', descuento: 0, variant: 'outline' },
-  basica: { label: 'Básica (5%)', descuento: 5, variant: 'secondary' },
-  premium: { label: 'Premium (10%)', descuento: 10, variant: 'default' },
-  vip: { label: 'VIP (15%)', descuento: 15, variant: 'destructive' },
-};
 
 export default function Clientes() {
   const { toast } = useToast();

@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import { Servicio, TarifaHora, Cliente, TipoMembresia } from '@/types/database';
+import { MEMBRESIA_LABELS } from '@/lib/constants';
 
 const ticketSchema = z.object({
   personas: z.number().min(1, 'Debe haber al menos 1 persona'),
@@ -25,12 +26,6 @@ interface SelectedService {
   cantidad: number;
 }
 
-const MEMBRESIA_LABELS: Record<TipoMembresia, string> = {
-  ninguna: 'Sin membresía',
-  basica: 'Básica (5%)',
-  premium: 'Premium (10%)',
-  vip: 'VIP (15%)',
-};
 
 export default function NuevoTicket() {
   const navigate = useNavigate();
@@ -208,6 +203,22 @@ export default function NuevoTicket() {
 
       // Add services if any
       if (selectedServices.length > 0) {
+        // Re-verificar stock actual antes de procesar (previene condiciones de carrera)
+        for (const ss of selectedServices) {
+          const servicio = servicios.find(s => s.id === ss.servicio_id);
+          if (servicio?.requiere_inventario) {
+            const { data: stockActual } = await supabase
+              .from('servicios')
+              .select('stock_actual, nombre')
+              .eq('id', ss.servicio_id)
+              .single();
+            
+            if (stockActual && stockActual.stock_actual !== null && stockActual.stock_actual < ss.cantidad) {
+              throw new Error(`Stock insuficiente para "${stockActual.nombre}". Disponible: ${stockActual.stock_actual}`);
+            }
+          }
+        }
+
         const serviciosToInsert = selectedServices.map(ss => {
           const servicio = servicios.find(s => s.id === ss.servicio_id)!;
           return {
@@ -225,14 +236,22 @@ export default function NuevoTicket() {
 
         if (serviciosError) throw serviciosError;
 
-        // Update inventory
+        // Update inventory with current values from DB
         for (const ss of selectedServices) {
           const servicio = servicios.find(s => s.id === ss.servicio_id);
-          if (servicio?.requiere_inventario && servicio.stock_actual !== null) {
-            await supabase
+          if (servicio?.requiere_inventario) {
+            const { data: currentStock } = await supabase
               .from('servicios')
-              .update({ stock_actual: servicio.stock_actual - ss.cantidad })
-              .eq('id', ss.servicio_id);
+              .select('stock_actual')
+              .eq('id', ss.servicio_id)
+              .single();
+            
+            if (currentStock && currentStock.stock_actual !== null) {
+              await supabase
+                .from('servicios')
+                .update({ stock_actual: currentStock.stock_actual - ss.cantidad })
+                .eq('id', ss.servicio_id);
+            }
           }
         }
       }
