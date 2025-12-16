@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Ticket, EstadoTicket } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { formatTime } from '@/lib/formatters';
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -20,14 +21,6 @@ const estadoConfig: Record<EstadoTicket, { bg: string; text: string; label: stri
   cancelado: { bg: 'bg-destructive', text: 'text-white', label: 'Cancelado', icon: Flag },
 };
 
-function formatTime(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours > 0) {
-    return `${hours}h ${mins}m`;
-  }
-  return `${mins}m`;
-}
 
 export function TicketCard({ ticket, onPause, onResume }: TicketCardProps) {
   const navigate = useNavigate();
