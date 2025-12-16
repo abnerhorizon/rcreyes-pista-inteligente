@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { 
   Plus, Pencil, Package, BatteryCharging, Car, CupSoda, Cookie, 
-  Cpu, Wrench, ShoppingCart, Gamepad2, Timer, Zap
+  Cpu, Wrench, ShoppingCart, Gamepad2, Timer, Zap, RotateCcw
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import type { TipoCosto } from '@/types/database';
@@ -310,16 +310,22 @@ export default function Servicios() {
                   )}
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold">${servicio.precio.toFixed(2)}</span>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Badge variant={servicio.activo ? 'default' : 'secondary'}>
                         {servicio.activo ? 'Activo' : 'Inactivo'}
                       </Badge>
                       <Badge variant="outline">{servicio.tipo_costo}</Badge>
+                      {servicio.requiere_inventario && (
+                        <Badge variant="secondary" className="gap-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                          <RotateCcw className="h-3 w-3" />
+                          Renta
+                        </Badge>
+                      )}
                     </div>
                   </div>
                   {servicio.requiere_inventario && (
                     <p className="text-sm text-muted-foreground">
-                      Stock: {servicio.stock_actual ?? 0}
+                      Stock disponible: {servicio.stock_actual ?? 0}
                     </p>
                   )}
                 </CardContent>
