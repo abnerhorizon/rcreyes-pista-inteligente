@@ -10,12 +10,13 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Pencil, User, Shield, Plus, Loader2, Trash2 } from 'lucide-react';
+import { Pencil, User, Shield, Plus, Loader2, Trash2, Key } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import type { AppRole } from '@/types/database';
 import { z } from 'zod';
+import { Separator } from '@/components/ui/separator';
 
 const newUserSchema = z.object({
   nombre: z.string().trim().min(2, { message: 'El nombre debe tener al menos 2 caracteres' }).max(100),
@@ -51,6 +52,10 @@ export default function Usuarios() {
   // Delete user state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<UserWithRole | null>(null);
+  
+  // Password change state
+  const [newPasswordForEdit, setNewPasswordForEdit] = useState('');
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: usuarios, isLoading } = useQuery({
@@ -135,7 +140,48 @@ export default function Usuarios() {
     setEditingUser(usuario);
     setSelectedRole(usuario.role);
     setIsActive(usuario.activo);
+    setNewPasswordForEdit('');
     setIsDialogOpen(true);
+  };
+
+  const handleChangePassword = async () => {
+    if (!editingUser || !newPasswordForEdit) return;
+
+    if (newPasswordForEdit.length < 6) {
+      toast({
+        title: 'Error',
+        description: 'La contraseña debe tener al menos 6 caracteres',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('update-password', {
+        body: {
+          userId: editingUser.id,
+          newPassword: newPasswordForEdit,
+        },
+      });
+
+      if (error) throw error;
+      if (data.error) throw new Error(data.error);
+
+      setNewPasswordForEdit('');
+      toast({
+        title: 'Contraseña actualizada',
+        description: `Se ha cambiado la contraseña de ${editingUser.nombre}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'No se pudo cambiar la contraseña.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
   };
 
   const openCreateDialog = () => {
@@ -351,6 +397,35 @@ export default function Usuarios() {
                   >
                     Guardar
                   </Button>
+                </div>
+
+                <Separator className="my-4" />
+                
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Key className="h-4 w-4 text-muted-foreground" />
+                    <label className="text-sm font-medium">Cambiar Contraseña</label>
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      type="password"
+                      placeholder="Nueva contraseña"
+                      value={newPasswordForEdit}
+                      onChange={(e) => setNewPasswordForEdit(e.target.value)}
+                      className="flex-1 touch-target"
+                    />
+                    <Button 
+                      onClick={handleChangePassword}
+                      disabled={isChangingPassword || !newPasswordForEdit}
+                      variant="secondary"
+                    >
+                      {isChangingPassword ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        'Cambiar'
+                      )}
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
