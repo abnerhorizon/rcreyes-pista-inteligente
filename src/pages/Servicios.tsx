@@ -15,6 +15,7 @@ import {
   Plus, Pencil, Package, BatteryCharging, Car, CupSoda, Cookie, 
   Cpu, Wrench, ShoppingCart, Gamepad2, Timer, Zap, RotateCcw
 } from 'lucide-react';
+import { CardSkeletonGrid } from '@/components/ui/card-skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { TipoCosto } from '@/types/database';
 
@@ -284,7 +285,7 @@ export default function Servicios() {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">Cargando...</div>
+          <CardSkeletonGrid count={6} />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {servicios?.map((servicio) => {

@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Pencil, User, Plus, Loader2, Trash2, Search, Crown, Percent } from 'lucide-react';
+import { CardSkeletonGrid } from '@/components/ui/card-skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { TipoMembresia } from '@/types/database';
 import { MEMBRESIA_CONFIG } from '@/lib/constants';
@@ -37,6 +38,9 @@ export default function Clientes() {
   const queryClient = useQueryClient();
   
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 12;
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -105,6 +109,18 @@ export default function Clientes() {
     cliente.codigo_cliente?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cliente.telefono?.includes(searchTerm)
   );
+
+  // Paginación
+  const totalItems = filteredClientes?.length || 0;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedClientes = filteredClientes?.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // Reset página cuando cambia búsqueda
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
 
   const openEdit = (cliente: ClienteWithMembresia) => {
     setEditingCliente(cliente);
@@ -264,67 +280,121 @@ export default function Clientes() {
           <Input
             placeholder="Buscar por nombre, código o teléfono..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-10 touch-target"
           />
         </div>
 
         {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">Cargando...</div>
+          <CardSkeletonGrid count={6} />
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredClientes?.map((cliente) => (
-              <Card key={cliente.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2">
-                      <User className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <CardTitle className="text-lg">{cliente.nombre}</CardTitle>
-                        <p className="text-sm font-mono text-muted-foreground">{cliente.codigo_cliente}</p>
+          <>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {paginatedClientes?.map((cliente) => (
+                <Card key={cliente.id}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                        <div>
+                          <CardTitle className="text-lg">{cliente.nombre}</CardTitle>
+                          <p className="text-sm font-mono text-muted-foreground">{cliente.codigo_cliente}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => openEdit(cliente)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => openDeleteDialog(cliente)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(cliente)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => openDeleteDialog(cliente)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {cliente.telefono && (
-                    <p className="text-sm text-muted-foreground">{cliente.telefono}</p>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Badge variant={MEMBRESIA_CONFIG[cliente.membresia || 'ninguna'].variant}>
-                      {cliente.membresia !== 'ninguna' && <Crown className="h-3 w-3 mr-1" />}
-                      {MEMBRESIA_CONFIG[cliente.membresia || 'ninguna'].label}
-                    </Badge>
-                    {cliente.descuento_porcentaje > 0 && (
-                      <Badge variant="outline" className="gap-1">
-                        <Percent className="h-3 w-3" />
-                        {cliente.descuento_porcentaje}%
-                      </Badge>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {cliente.telefono && (
+                      <p className="text-sm text-muted-foreground">{cliente.telefono}</p>
                     )}
+                    <div className="flex items-center gap-2">
+                      <Badge variant={MEMBRESIA_CONFIG[cliente.membresia || 'ninguna'].variant}>
+                        {cliente.membresia !== 'ninguna' && <Crown className="h-3 w-3 mr-1" />}
+                        {MEMBRESIA_CONFIG[cliente.membresia || 'ninguna'].label}
+                      </Badge>
+                      {cliente.descuento_porcentaje > 0 && (
+                        <Badge variant="outline" className="gap-1">
+                          <Percent className="h-3 w-3" />
+                          {cliente.descuento_porcentaje}%
+                        </Badge>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+              
+              {paginatedClientes?.length === 0 && (
+                <div className="col-span-full text-center py-8 text-muted-foreground">
+                  No se encontraron clientes
+                </div>
+              )}
+            </div>
+
+            {/* Paginación */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Mostrando {startIndex + 1}-{Math.min(startIndex + ITEMS_PER_PAGE, totalItems)} de {totalItems} clientes
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                  >
+                    Anterior
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? "default" : "outline"}
+                          size="sm"
+                          className="w-9"
+                          onClick={() => setCurrentPage(pageNum)}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
                   </div>
-                </CardContent>
-              </Card>
-            ))}
-            
-            {filteredClientes?.length === 0 && (
-              <div className="col-span-full text-center py-8 text-muted-foreground">
-                No se encontraron clientes
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Siguiente
+                  </Button>
+                </div>
               </div>
             )}
-          </div>
+          </>
         )}
 
         {/* Edit Dialog */}
