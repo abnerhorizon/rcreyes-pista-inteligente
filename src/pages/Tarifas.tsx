@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Pencil, Clock } from 'lucide-react';
+import { CardSkeletonGrid } from '@/components/ui/card-skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { TarifaHora, TipoRedondeo } from '@/types/database';
 
@@ -181,7 +182,7 @@ export default function Tarifas() {
         </div>
 
         {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">Cargando...</div>
+          <CardSkeletonGrid count={3} />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {tarifas?.map((tarifa) => (

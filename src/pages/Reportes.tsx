@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { CalendarIcon, DollarSign, Clock, Users, Ticket, TrendingUp, Package } from 'lucide-react';
+import { CalendarIcon, DollarSign, Clock, Users, Ticket, TrendingUp, Package, Download } from 'lucide-react';
 import { format, startOfDay, endOfDay, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -163,6 +163,46 @@ export default function Reportes() {
     { name: 'Servicios', value: stats?.ingresosServicios || 0 },
   ].filter(d => d.value > 0);
 
+  const exportToCSV = () => {
+    if (!stats || !dateRange?.from || !dateRange?.to) return;
+
+    const fromStr = format(dateRange.from, 'yyyy-MM-dd');
+    const toStr = format(dateRange.to, 'yyyy-MM-dd');
+    
+    // Crear contenido CSV
+    const lines = [
+      ['Reporte de Operaciones RCReyes'],
+      [`Período: ${format(dateRange.from, 'dd/MM/yyyy', { locale: es })} - ${format(dateRange.to, 'dd/MM/yyyy', { locale: es })}`],
+      [],
+      ['RESUMEN GENERAL'],
+      ['Métrica', 'Valor'],
+      ['Clientes Atendidos', stats.totalPersonas],
+      ['Tickets Cerrados', stats.ticketsCerrados],
+      ['Tickets Cancelados', stats.ticketsCancelados],
+      ['Horas Cobradas', stats.totalHorasCobradas],
+      ['Ingresos por Tiempo', `$${stats.ingresosTiempo.toFixed(2)}`],
+      ['Ingresos por Servicios', `$${stats.ingresosServicios.toFixed(2)}`],
+      ['Ventas Totales', `$${stats.ventasTotales.toFixed(2)}`],
+      [],
+      ['DESGLOSE DIARIO'],
+      ['Fecha', 'Clientes', 'Horas', 'Ingresos'],
+      ...stats.datosGraficoDiario.map(d => [d.fecha, d.clientes, d.horas, `$${d.ingresos.toFixed(2)}`]),
+      [],
+      ['SERVICIOS MÁS SOLICITADOS'],
+      ['Servicio', 'Cantidad', 'Ingresos'],
+      ...stats.topServicios.map(s => [s.nombre, s.cantidad, `$${s.ingresos.toFixed(2)}`]),
+    ];
+
+    const csvContent = lines.map(row => row.join(',')).join('\n');
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `reporte-rcreyes-${fromStr}-${toStr}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -172,61 +212,72 @@ export default function Reportes() {
             <p className="text-muted-foreground">Análisis de operaciones</p>
           </div>
           
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" className="touch-button justify-start text-left font-normal">
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {dateRange?.from ? (
-                  dateRange.to ? (
-                    <>
-                      {format(dateRange.from, "dd MMM", { locale: es })} - {format(dateRange.to, "dd MMM yyyy", { locale: es })}
-                    </>
+          <div className="flex gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="touch-button justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateRange?.from ? (
+                    dateRange.to ? (
+                      <>
+                        {format(dateRange.from, "dd MMM", { locale: es })} - {format(dateRange.to, "dd MMM yyyy", { locale: es })}
+                      </>
+                    ) : (
+                      format(dateRange.from, "dd MMM yyyy", { locale: es })
+                    )
                   ) : (
-                    format(dateRange.from, "dd MMM yyyy", { locale: es })
-                  )
-                ) : (
-                  <span>Seleccionar fechas</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <Calendar
-                initialFocus
-                mode="range"
-                defaultMonth={dateRange?.from}
-                selected={dateRange}
-                onSelect={setDateRange}
-                numberOfMonths={1}
-                locale={es}
-              />
-              <div className="p-3 border-t flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => setDateRange({ from: new Date(), to: new Date() })}
-                >
-                  Hoy
+                    <span>Seleccionar fechas</span>
+                  )}
                 </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => setDateRange({ from: subDays(new Date(), 7), to: new Date() })}
-                >
-                  Últimos 7 días
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => setDateRange({ from: subDays(new Date(), 30), to: new Date() })}
-                >
-                  Últimos 30 días
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={dateRange?.from}
+                  selected={dateRange}
+                  onSelect={setDateRange}
+                  numberOfMonths={1}
+                  locale={es}
+                />
+                <div className="p-3 border-t flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => setDateRange({ from: new Date(), to: new Date() })}
+                  >
+                    Hoy
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => setDateRange({ from: subDays(new Date(), 7), to: new Date() })}
+                  >
+                    Últimos 7 días
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => setDateRange({ from: subDays(new Date(), 30), to: new Date() })}
+                  >
+                    Últimos 30 días
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            
+            <Button 
+              onClick={exportToCSV} 
+              disabled={!stats || isLoading}
+              className="touch-button"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Exportar CSV
+            </Button>
+          </div>
         </div>
 
         {isLoading ? (
