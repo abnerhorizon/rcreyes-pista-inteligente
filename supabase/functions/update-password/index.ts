@@ -51,72 +51,48 @@ serve(async (req) => {
 
     if (roleError || !roleData || !['admin', 'root'].includes(roleData.role)) {
       return new Response(
-        JSON.stringify({ error: 'No tienes permisos para crear usuarios' }),
+        JSON.stringify({ error: 'No tienes permisos para cambiar contraseñas' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // Parse the request body
-    const { email, password, nombre, role } = await req.json()
+    const { userId, newPassword } = await req.json()
 
-    if (!email || !password || !nombre) {
+    if (!userId || !newPassword) {
       return new Response(
-        JSON.stringify({ error: 'Faltan campos requeridos: email, password, nombre' }),
+        JSON.stringify({ error: 'Faltan campos requeridos: userId, newPassword' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Validate role
-    const validRoles = ['operador', 'supervisor', 'admin']
-    const assignedRole = validRoles.includes(role) ? role : 'operador'
-
-    console.log(`Admin ${callingUser.email} creating user: ${email} with role: ${assignedRole}`)
-
-    // Create the user using admin client
-    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: { nombre }
-    })
-
-    if (createError) {
-      console.error('Error creating user:', createError)
-      if (createError.message.includes('already been registered')) {
-        return new Response(
-          JSON.stringify({ error: 'Este correo ya está registrado' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
+    if (newPassword.length < 6) {
       return new Response(
-        JSON.stringify({ error: 'Error al crear usuario: ' + createError.message }),
+        JSON.stringify({ error: 'La contraseña debe tener al menos 6 caracteres' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Update the role if it's different from the default (operador)
-    if (assignedRole !== 'operador') {
-      const { error: updateRoleError } = await adminClient
-        .from('user_roles')
-        .update({ role: assignedRole })
-        .eq('user_id', newUser.user.id)
+    console.log(`Admin ${callingUser.email} changing password for user: ${userId}`)
 
-      if (updateRoleError) {
-        console.error('Error updating role:', updateRoleError)
-      }
+    // Update the user's password using admin client
+    const { error: updateError } = await adminClient.auth.admin.updateUserById(
+      userId,
+      { password: newPassword }
+    )
+
+    if (updateError) {
+      console.error('Error updating password:', updateError)
+      return new Response(
+        JSON.stringify({ error: 'Error al cambiar contraseña: ' + updateError.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    console.log(`User created successfully: ${newUser.user.id}`)
+    console.log(`Password updated successfully for user: ${userId}`)
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        user: { 
-          id: newUser.user.id, 
-          email: newUser.user.email,
-          nombre 
-        } 
-      }),
+      JSON.stringify({ success: true }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
